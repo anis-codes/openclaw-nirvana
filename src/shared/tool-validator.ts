@@ -15,7 +15,7 @@ export const schemas = {
   hubspot_contacts: z.object({
     results: z.array(z.object({
       id: z.string(),
-      properties: z.record(z.unknown()),
+      properties: z.record(z.string(), z.unknown()),
     })),
   }),
 

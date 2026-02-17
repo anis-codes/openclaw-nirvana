@@ -28,7 +28,7 @@ app.get('/health', async (req, res) => {
 startScheduler();
 
 bot.start({
-  onStart: () => logger.info('Telegram bot started (polling mode)'),
+  onStart: () => { logger.info('Telegram bot started (polling mode)'); },
 });
 
 app.listen(Number(config.PORT), () => {
