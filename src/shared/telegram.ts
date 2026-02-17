@@ -4,6 +4,7 @@ import { generateProposal } from '../agents/upwork-bd/generate-proposal';
 import { requestApproval } from './approval';
 import { scanJobs } from '../agents/upwork-bd/scanner';
 import { generateWeeklyReport } from '../agents/system-auditor/weekly-report';
+import { sfQuery, sfDebug, sfAsk } from '../agents/sfdc-ops/index';
 
 // /start
 bot.command('start', (ctx) => {
@@ -56,6 +57,51 @@ bot.command('scan', async (ctx) => {
 bot.command('report', async (ctx) => {
   ctx.reply('Generating report...');
   await generateWeeklyReport();
+});
+
+// /soql <natural language> - generate SOQL query
+bot.command('soql', async (ctx) => {
+  const question = ctx.match;
+  if (!question || question.length < 5) {
+    return ctx.reply('Usage: /soql <describe what you need>');
+  }
+  ctx.reply('\u{1F50D} Generating SOQL...');
+  try {
+    const result = await sfQuery(question);
+    ctx.reply(result);
+  } catch (err) {
+    ctx.reply(`\u274C Error: ${err}`);
+  }
+});
+
+// /sfdebug <error or issue> - debug Salesforce problems
+bot.command('sfdebug', async (ctx) => {
+  const issue = ctx.match;
+  if (!issue || issue.length < 10) {
+    return ctx.reply('Usage: /sfdebug <paste error message or describe issue>');
+  }
+  ctx.reply('\u{1F527} Analyzing...');
+  try {
+    const result = await sfDebug(issue);
+    ctx.reply(result);
+  } catch (err) {
+    ctx.reply(`\u274C Error: ${err}`);
+  }
+});
+
+// /sf <anything> - general Salesforce question
+bot.command('sf', async (ctx) => {
+  const question = ctx.match;
+  if (!question || question.length < 5) {
+    return ctx.reply('Usage: /sf <your Salesforce question>');
+  }
+  ctx.reply('\u{1F4AD} Thinking...');
+  try {
+    const result = await sfAsk(question);
+    ctx.reply(result);
+  } catch (err) {
+    ctx.reply(`\u274C Error: ${err}`);
+  }
 });
 
 export { bot, notify };
