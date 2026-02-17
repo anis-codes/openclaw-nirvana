@@ -2,6 +2,8 @@ import express from 'express';
 import { config } from './config';
 import { logger } from './logger';
 import { supabase } from './supabase';
+import { bot } from './shared/telegram';
+import './shared/approval';
 
 const app = express();
 app.use(express.json());
@@ -19,6 +21,10 @@ app.get('/health', async (req, res) => {
   } catch (err) {
     res.status(500).json({ status: 'unhealthy', error: String(err) });
   }
+});
+
+bot.start({
+  onStart: () => logger.info('Telegram bot started (polling mode)'),
 });
 
 app.listen(Number(config.PORT), () => {
