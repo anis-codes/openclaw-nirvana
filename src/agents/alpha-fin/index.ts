@@ -44,18 +44,20 @@ export async function finOpenTrade(
 }
 
 export async function finCloseTrade(tradeId: string, exitPrice: number): Promise<string> {
-  const { data: trade, error: fetchErr } = await supabase
+  // Fetch all open trades and match by prefix
+  const { data: trades, error: fetchErr } = await supabase
     .from('paper_trades')
     .select('*')
-    .ilike('id', `${tradeId}%`)
-    .eq('status', 'open')
-    .single();
+    .eq('status', 'open');
 
-  if (fetchErr || !trade) return 'Trade not found or already closed.';
+  if (fetchErr || !trades?.length) return 'No open trades found.';
+
+  const trade = trades.find(t => t.id.startsWith(tradeId));
+  if (!trade) return 'Trade not found or already closed.';
 
   const pnl = trade.side === 'LONG'
-    ? (exitPrice - trade.entry_price) * trade.quantity
-    : (trade.entry_price - exitPrice) * trade.quantity;
+    ? (exitPrice - Number(trade.entry_price)) * Number(trade.quantity)
+    : (Number(trade.entry_price) - exitPrice) * Number(trade.quantity);
 
   const { error } = await supabase.from('paper_trades').update({
     exit_price: exitPrice, pnl_usd: pnl,
