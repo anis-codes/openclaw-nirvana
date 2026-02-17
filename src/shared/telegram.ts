@@ -1,29 +1,7 @@
-import { Bot } from 'grammy';
-import { config } from '../config';
+import { bot, notify } from './bot';
 import { logger } from '../logger';
-
-export const bot = new Bot(config.TELEGRAM_BOT_TOKEN);
-
-// Security: only respond to YOUR user ID
-bot.use(async (ctx, next) => {
-  const userId = String(ctx.from?.id);
-  if (userId !== config.TELEGRAM_USER_ID) {
-    logger.warn('Unauthorized Telegram access attempt', { userId });
-    return;
-  }
-  await next();
-});
-
-// Helper: send message to Anis
-export async function notify(text: string): Promise<void> {
-  try {
-    await bot.api.sendMessage(config.TELEGRAM_USER_ID, text, {
-      parse_mode: 'HTML',
-    });
-  } catch (err) {
-    logger.error('Failed to send Telegram notification', { err });
-  }
-}
+import { generateProposal } from '../agents/upwork-bd/generate-proposal';
+import { requestApproval } from './approval';
 
 // /start
 bot.command('start', (ctx) => {
@@ -34,6 +12,35 @@ bot.command('start', (ctx) => {
 bot.command('health', async (ctx) => {
   const uptime = Math.floor(process.uptime());
   const mem = Math.floor(process.memoryUsage().heapUsed / 1024 / 1024);
-  ctx.reply(`<b>System Health</b>\n\u2022 Uptime: ${uptime}s\n\u2022 Memory: ${mem}MB`, 
+  ctx.reply(`<b>System Health</b>\n\u2022 Uptime: ${uptime}s\n\u2022 Memory: ${mem}MB`,
     { parse_mode: 'HTML' });
 });
+
+// /proposal <job description>
+bot.command('proposal', async (ctx) => {
+  const jobText = ctx.match;
+  if (!jobText || jobText.length < 20) {
+    return ctx.reply('Usage: /proposal <paste full job description>');
+  }
+  ctx.reply('\u{1F504} Generating proposal...');
+
+  try {
+    const proposal = await generateProposal(jobText);
+    await requestApproval({
+      agent: 'upwork-bd',
+      actionType: 'submit_proposal',
+      summary: proposal.slice(0, 500),
+      fullContent: proposal,
+      onApprove: async () => {
+        logger.info('Proposal approved', { proposal: proposal.slice(0, 100) });
+      },
+      onReject: async () => {
+        logger.info('Proposal rejected');
+      },
+    });
+  } catch (err) {
+    ctx.reply(`\u274C Error: ${err}`);
+  }
+});
+
+export { bot, notify };

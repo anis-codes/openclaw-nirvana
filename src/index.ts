@@ -2,8 +2,9 @@ import express from 'express';
 import { config } from './config';
 import { logger } from './logger';
 import { supabase } from './supabase';
-import { bot } from './shared/telegram';
+import { bot } from './shared/bot';
 import './shared/approval';
+import './shared/telegram';
 
 const app = express();
 app.use(express.json());

@@ -1,4 +1,4 @@
-import { bot, notify } from './telegram';
+import { bot, notify } from './bot';
 import { logger } from '../logger';
 import { logAction } from './log-action';
 

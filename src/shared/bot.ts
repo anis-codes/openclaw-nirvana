@@ -1,0 +1,26 @@
+import { Bot } from 'grammy';
+import { config } from '../config';
+import { logger } from '../logger';
+
+export const bot = new Bot(config.TELEGRAM_BOT_TOKEN);
+
+// Security: only respond to YOUR user ID
+bot.use(async (ctx, next) => {
+  const userId = String(ctx.from?.id);
+  if (userId !== config.TELEGRAM_USER_ID) {
+    logger.warn('Unauthorized Telegram access attempt', { userId });
+    return;
+  }
+  await next();
+});
+
+// Helper: send message to Anis
+export async function notify(text: string): Promise<void> {
+  try {
+    await bot.api.sendMessage(config.TELEGRAM_USER_ID, text, {
+      parse_mode: 'HTML',
+    });
+  } catch (err) {
+    logger.error('Failed to send Telegram notification', { err });
+  }
+}
