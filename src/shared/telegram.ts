@@ -2,6 +2,8 @@ import { bot, notify } from './bot';
 import { logger } from '../logger';
 import { generateProposal } from '../agents/upwork-bd/generate-proposal';
 import { requestApproval } from './approval';
+import { scanJobs } from '../agents/upwork-bd/scanner';
+import { generateWeeklyReport } from '../agents/system-auditor/weekly-report';
 
 // /start
 bot.command('start', (ctx) => {
@@ -43,13 +45,17 @@ bot.command('proposal', async (ctx) => {
   }
 });
 
-export { bot, notify };
-
-import { scanJobs } from '../agents/upwork-bd/scanner';
-
 // /scan - manual job scan
 bot.command('scan', async (ctx) => {
   ctx.reply('\u{1F50D} Scanning Upwork feeds...');
   await scanJobs();
   ctx.reply('\u2705 Scan complete.');
 });
+
+// /report - on-demand weekly report
+bot.command('report', async (ctx) => {
+  ctx.reply('Generating report...');
+  await generateWeeklyReport();
+});
+
+export { bot, notify };
