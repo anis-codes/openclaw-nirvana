@@ -7,13 +7,12 @@ import { generateWeeklyReport } from '../agents/system-auditor/weekly-report';
 import { sfQuery, sfDebug, sfAsk } from '../agents/sfdc-ops/index';
 import { hsWorkflow, hsDebug, hsAsk } from '../agents/hspot-ops/index';
 import { paDraft, paPrioritize, paAsk } from '../agents/nirvana-pa/index';
+import { ceLinkedIn, ceBlog, ceIdeas } from '../agents/content-engine/index';
 
-// /start
 bot.command('start', (ctx) => {
   ctx.reply('\u2705 OpenClaw Command Center active.\nUse /help to see all commands.');
 });
 
-// /help
 bot.command('help', (ctx) => {
   ctx.reply(
     `<b>\u{1F3AE} OpenClaw Commands</b>\n\n` +
@@ -34,32 +33,31 @@ bot.command('help', (ctx) => {
     `<b>Assistant (NIRVANA-PA):</b>\n` +
     `/draft &lt;request&gt; - Draft message/email\n` +
     `/prioritize &lt;tasks&gt; - Prioritize work\n` +
-    `/pa &lt;anything&gt; - General assistant`,
+    `/pa &lt;anything&gt; - General assistant\n\n` +
+    `<b>Content (CONTENT-ENGINE):</b>\n` +
+    `/linkedin &lt;topic&gt; - LinkedIn post\n` +
+    `/blog &lt;topic&gt; - Blog post\n` +
+    `/ideas &lt;context&gt; - Content ideas`,
     { parse_mode: 'HTML' }
   );
 });
 
-// /health
 bot.command('health', async (ctx) => {
   const uptime = Math.floor(process.uptime());
   const mem = Math.floor(process.memoryUsage().heapUsed / 1024 / 1024);
-  ctx.reply(`<b>System Health</b>\n\u2022 Uptime: ${uptime}s\n\u2022 Memory: ${mem}MB`,
-    { parse_mode: 'HTML' });
+  ctx.reply(`<b>System Health</b>\n\u2022 Uptime: ${uptime}s\n\u2022 Memory: ${mem}MB`, { parse_mode: 'HTML' });
 });
 
-// UPWORK-BD
 bot.command('proposal', async (ctx) => {
-  const jobText = ctx.match;
-  if (!jobText || jobText.length < 20) return ctx.reply('Usage: /proposal <paste full job description>');
+  const q = ctx.match;
+  if (!q || q.length < 20) return ctx.reply('Usage: /proposal <paste full job description>');
   ctx.reply('\u{1F504} Generating proposal...');
   try {
-    const proposal = await generateProposal(jobText);
+    const proposal = await generateProposal(q);
     await requestApproval({
-      agent: 'upwork-bd',
-      actionType: 'submit_proposal',
-      summary: proposal.slice(0, 500),
-      fullContent: proposal,
-      onApprove: async () => { logger.info('Proposal approved', { proposal: proposal.slice(0, 100) }); },
+      agent: 'upwork-bd', actionType: 'submit_proposal',
+      summary: proposal.slice(0, 500), fullContent: proposal,
+      onApprove: async () => { logger.info('Proposal approved'); },
       onReject: async () => { logger.info('Proposal rejected'); },
     });
   } catch (err) { ctx.reply(`\u274C Error: ${err}`); }
@@ -76,7 +74,6 @@ bot.command('report', async (ctx) => {
   await generateWeeklyReport();
 });
 
-// SFDC-OPS
 bot.command('soql', async (ctx) => {
   const q = ctx.match;
   if (!q || q.length < 5) return ctx.reply('Usage: /soql <describe what you need>');
@@ -98,7 +95,6 @@ bot.command('sf', async (ctx) => {
   try { ctx.reply(await sfAsk(q)); } catch (err) { ctx.reply(`\u274C Error: ${err}`); }
 });
 
-// HSPOT-OPS
 bot.command('hsflow', async (ctx) => {
   const q = ctx.match;
   if (!q || q.length < 5) return ctx.reply('Usage: /hsflow <describe workflow need>');
@@ -120,7 +116,6 @@ bot.command('hs', async (ctx) => {
   try { ctx.reply(await hsAsk(q)); } catch (err) { ctx.reply(`\u274C Error: ${err}`); }
 });
 
-// NIRVANA-PA
 bot.command('draft', async (ctx) => {
   const q = ctx.match;
   if (!q || q.length < 10) return ctx.reply('Usage: /draft <describe what to draft>');
@@ -140,6 +135,27 @@ bot.command('pa', async (ctx) => {
   if (!q || q.length < 5) return ctx.reply('Usage: /pa <your request>');
   ctx.reply('\u{1F4AD} On it...');
   try { ctx.reply(await paAsk(q)); } catch (err) { ctx.reply(`\u274C Error: ${err}`); }
+});
+
+bot.command('linkedin', async (ctx) => {
+  const q = ctx.match;
+  if (!q || q.length < 5) return ctx.reply('Usage: /linkedin <topic or angle>');
+  ctx.reply('\u{1F4DD} Writing LinkedIn post...');
+  try { ctx.reply(await ceLinkedIn(q)); } catch (err) { ctx.reply(`\u274C Error: ${err}`); }
+});
+
+bot.command('blog', async (ctx) => {
+  const q = ctx.match;
+  if (!q || q.length < 5) return ctx.reply('Usage: /blog <topic>');
+  ctx.reply('\u{1F4DD} Writing blog post...');
+  try { ctx.reply(await ceBlog(q)); } catch (err) { ctx.reply(`\u274C Error: ${err}`); }
+});
+
+bot.command('ideas', async (ctx) => {
+  const q = ctx.match;
+  if (!q || q.length < 5) return ctx.reply('Usage: /ideas <context or theme>');
+  ctx.reply('\u{1F4A1} Generating ideas...');
+  try { ctx.reply(await ceIdeas(q)); } catch (err) { ctx.reply(`\u274C Error: ${err}`); }
 });
 
 export { bot, notify };
