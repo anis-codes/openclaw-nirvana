@@ -8,6 +8,7 @@ import { sfQuery, sfDebug, sfAsk } from '../agents/sfdc-ops/index';
 import { hsWorkflow, hsDebug, hsAsk } from '../agents/hspot-ops/index';
 import { paDraft, paPrioritize, paAsk } from '../agents/nirvana-pa/index';
 import { ceLinkedIn, ceBlog, ceIdeas } from '../agents/content-engine/index';
+import { finAnalyze, finTrade, finOpenTrade, finCloseTrade, finPortfolio } from '../agents/alpha-fin/index';
 
 bot.command('start', (ctx) => {
   ctx.reply('\u2705 OpenClaw Command Center active.\nUse /help to see all commands.');
@@ -37,7 +38,13 @@ bot.command('help', (ctx) => {
     `<b>Content (CONTENT-ENGINE):</b>\n` +
     `/linkedin &lt;topic&gt; - LinkedIn post\n` +
     `/blog &lt;topic&gt; - Blog post\n` +
-    `/ideas &lt;context&gt; - Content ideas`,
+    `/ideas &lt;context&gt; - Content ideas\n\n` +
+    `<b>Trading (ALPHA-FIN):</b>\n` +
+    `/analyze &lt;query&gt; - Market analysis\n` +
+    `/trade &lt;ticker&gt; - Generate trade idea\n` +
+    `/opentrade - Open paper trade\n` +
+    `/closetrade - Close paper trade\n` +
+    `/portfolio - View positions + P&amp;L`,
     { parse_mode: 'HTML' }
   );
 });
@@ -156,6 +163,47 @@ bot.command('ideas', async (ctx) => {
   if (!q || q.length < 5) return ctx.reply('Usage: /ideas <context or theme>');
   ctx.reply('\u{1F4A1} Generating ideas...');
   try { ctx.reply(await ceIdeas(q)); } catch (err) { ctx.reply(`\u274C Error: ${err}`); }
+});
+
+bot.command('analyze', async (ctx) => {
+  const q = ctx.match;
+  if (!q || q.length < 3) return ctx.reply('Usage: /analyze <ticker or market question>');
+  ctx.reply('\u{1F4C8} Analyzing...');
+  try { ctx.reply(await finAnalyze(q)); } catch (err) { ctx.reply(`\u274C Error: ${err}`); }
+});
+
+bot.command('trade', async (ctx) => {
+  const q = ctx.match;
+  if (!q || q.length < 3) return ctx.reply('Usage: /trade <ticker or setup>');
+  ctx.reply('\u{1F4CA} Generating trade idea...');
+  try { ctx.reply(await finTrade(q)); } catch (err) { ctx.reply(`\u274C Error: ${err}`); }
+});
+
+bot.command('opentrade', async (ctx) => {
+  const q = ctx.match;
+  if (!q) return ctx.reply('Usage: /opentrade AAPL LONG 10 185.50 180 195 "breakout above resistance"');
+  const parts = q.match(/(\w+)\s+(LONG|SHORT)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+"(.+)"/i);
+  if (!parts) return ctx.reply('Format: /opentrade SYMBOL SIDE QTY ENTRY STOP TARGET "thesis"');
+  try {
+    const result = await finOpenTrade(parts[1], parts[2], Number(parts[3]), Number(parts[4]), Number(parts[5]), Number(parts[6]), parts[7]);
+    ctx.reply(result);
+  } catch (err) { ctx.reply(`\u274C Error: ${err}`); }
+});
+
+bot.command('closetrade', async (ctx) => {
+  const q = ctx.match;
+  if (!q) return ctx.reply('Usage: /closetrade <trade-id> <exit-price>');
+  const parts = q.split(/\s+/);
+  if (parts.length < 2) return ctx.reply('Usage: /closetrade <trade-id> <exit-price>');
+  try {
+    const result = await finCloseTrade(parts[0], Number(parts[1]));
+    ctx.reply(result);
+  } catch (err) { ctx.reply(`\u274C Error: ${err}`); }
+});
+
+bot.command('portfolio', async (ctx) => {
+  try { ctx.reply(await finPortfolio(), { parse_mode: 'HTML' }); }
+  catch (err) { ctx.reply(`\u274C Error: ${err}`); }
 });
 
 export { bot, notify };
