@@ -5,6 +5,7 @@ import { supabase } from './supabase';
 import { bot } from './shared/bot';
 import './shared/approval';
 import './shared/telegram';
+import { startScheduler } from './jobs/scheduler';
 
 const app = express();
 app.use(express.json());
@@ -23,6 +24,8 @@ app.get('/health', async (req, res) => {
     res.status(500).json({ status: 'unhealthy', error: String(err) });
   }
 });
+
+startScheduler();
 
 bot.start({
   onStart: () => logger.info('Telegram bot started (polling mode)'),

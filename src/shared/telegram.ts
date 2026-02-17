@@ -44,3 +44,12 @@ bot.command('proposal', async (ctx) => {
 });
 
 export { bot, notify };
+
+import { scanJobs } from '../agents/upwork-bd/scanner';
+
+// /scan - manual job scan
+bot.command('scan', async (ctx) => {
+  ctx.reply('\u{1F50D} Scanning Upwork feeds...');
+  await scanJobs();
+  ctx.reply('\u2705 Scan complete.');
+});
