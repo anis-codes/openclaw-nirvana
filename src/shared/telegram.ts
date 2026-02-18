@@ -1,3 +1,4 @@
+import { listSkills, reloadSkills } from "./skill-loader";
 import { bot, notify } from './bot';
 import { logger } from '../logger';
 import { generateProposal } from '../agents/upwork-bd/generate-proposal';
@@ -231,6 +232,24 @@ bot.command('invoiced', async (ctx) => {
   if (!client) return ctx.reply('Usage: /invoiced CLIENT_NAME');
   try { ctx.reply(await markInvoiced(client)); }
   catch (err) { ctx.reply('\u274C Error: ' + err); }
+});
+
+
+bot.command("skills", async (ctx) => {
+  const skills = listSkills();
+  if (!skills.length) return ctx.reply("No skills loaded.");
+  let msg = "<b>📚 Loaded Skills</b>\n\n";
+  skills.forEach(s => {
+    msg += "<b>" + s.name + "</b>\n";
+    msg += "  " + s.description + "\n";
+    msg += "  Agents: " + s.agents.join(", ") + "\n\n";
+  });
+  ctx.reply(msg, { parse_mode: "HTML" });
+});
+
+bot.command("reloadskills", async (ctx) => {
+  const count = reloadSkills();
+  ctx.reply("✅ Reloaded " + count + " skills.");
 });
 
 export { bot, notify };

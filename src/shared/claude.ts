@@ -1,3 +1,4 @@
+import { getSkillsForAgent } from "./skill-loader";
 import Anthropic from '@anthropic-ai/sdk';
 import { config } from '../config';
 import { logAction } from './log-action';
@@ -29,7 +30,7 @@ export async function callClaude(req: ClaudeRequest): Promise<ClaudeResponse> {
     const response = await client.messages.create({
       model,
       max_tokens: req.maxTokens ?? 2048,
-      system: req.systemPrompt,
+      system: req.systemPrompt + getSkillsForAgent(req.agent),
       messages: [{ role: 'user', content: req.userMessage }],
     });
 
