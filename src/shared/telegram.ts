@@ -1,3 +1,5 @@
+import { getClientDashboard, updateClientContact, updateClientAction } from "../agents/nirvana-pa/clients";
+import { logProposalFeedback } from "../agents/upwork-bd/proposal-feedback";
 import { listSkills, reloadSkills } from "./skill-loader";
 import { bot, notify } from './bot';
 import { logger } from '../logger';
@@ -257,6 +259,36 @@ bot.command("briefing", async (ctx) => {
   ctx.reply("Generating briefing...");
   const { sendMorningBriefing } = await import("../jobs/morning-briefing");
   await sendMorningBriefing();
+});
+
+
+bot.command("clients", async (ctx) => {
+  try { ctx.reply(await getClientDashboard(), { parse_mode: "HTML" }); }
+  catch (err) { ctx.reply("Error: " + err); }
+});
+
+bot.command("contacted", async (ctx) => {
+  const q = ctx.match;
+  if (!q) return ctx.reply("Usage: /contacted CLIENT [YYYY-MM-DD]");
+  const parts = q.split(/\s+/);
+  try { ctx.reply(await updateClientContact(parts[0], parts[1])); }
+  catch (err) { ctx.reply("Error: " + err); }
+});
+
+bot.command("nextaction", async (ctx) => {
+  const q = ctx.match;
+  if (!q) return ctx.reply("Usage: /nextaction CLIENT description");
+  const i = q.indexOf(" ");
+  if (i === -1) return ctx.reply("Usage: /nextaction CLIENT description");
+  try { ctx.reply(await updateClientAction(q.slice(0, i), q.slice(i + 1))); }
+  catch (err) { ctx.reply("Error: " + err); }
+});
+
+bot.command("rejectreason", async (ctx) => {
+  const q = ctx.match;
+  if (!q) return ctx.reply("Usage: /rejectreason why you rejected the last proposal");
+  logProposalFeedback("rejected", "see approval", q);
+  ctx.reply("Feedback logged. Future proposals will learn from this.");
 });
 
 export { bot, notify };

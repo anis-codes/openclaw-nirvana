@@ -1,6 +1,7 @@
 import { bot, notify } from './bot';
 import { logger } from '../logger';
 import { logAction } from './log-action';
+import { logProposalFeedback } from '../agents/upwork-bd/proposal-feedback';
 
 interface ApprovalRequest {
   agent: string;
@@ -34,6 +35,9 @@ bot.hears(/^\/approve_(\w+)$/, async (ctx) => {
   try {
     await pending.req.onApprove();
     const minutes = (Date.now() - pending.sentAt) / 60000;
+    if (pending.req.actionType === 'submit_proposal') {
+      logProposalFeedback('approved', pending.req.fullContent);
+    }
     pendingApprovals.delete(id);
     ctx.reply(`\u2705 Approved: ${pending.req.actionType}`);
     await logAction({ agent: pending.req.agent, action: 'approved',
@@ -49,6 +53,10 @@ bot.hears(/^\/reject_(\w+)$/, async (ctx) => {
   if (!pending) return ctx.reply('Approval not found or expired.');
   const minutes = (Date.now() - pending.sentAt) / 60000;
   await pending.req.onReject();
+  if (pending.req.actionType === 'submit_proposal') {
+    logProposalFeedback('rejected', pending.req.fullContent);
+    ctx.reply('Tip: Use /rejectreason <why> to help improve future proposals.');
+  }
   pendingApprovals.delete(id);
   ctx.reply(`\u{1F6AB} Rejected: ${pending.req.actionType}`);
   await logAction({ agent: pending.req.agent, action: 'rejected',
