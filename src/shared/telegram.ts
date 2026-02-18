@@ -1,3 +1,7 @@
+import { addTask, listTasks, completeTask } from "../agents/nirvana-pa/tasks";
+import { scanEmails } from "../agents/nirvana-pa/email-scanner";
+import { sendEveningReflection } from "../jobs/evening-reflection";
+import { runWebChecks } from "../jobs/web-check";
 import { runContentPipeline } from "../agents/content-engine/pipeline";
 import { scanUpworkTrends } from "../agents/upwork-bd/trends";
 import { getClientDashboard, updateClientContact, updateClientAction } from "../agents/nirvana-pa/clients";
@@ -308,6 +312,50 @@ bot.command("contentpipeline", async (ctx) => {
 bot.command("trends", async (ctx) => {
   ctx.reply("Scanning Upwork feeds...");
   try { ctx.reply(await scanUpworkTrends(), { parse_mode: "HTML" }); }
+  catch (err) { ctx.reply("Error: " + err); }
+});
+
+
+bot.command("task", async (ctx) => {
+  const q = ctx.match;
+  if (!q) return ctx.reply("Usage: /task [mine|theirs] CLIENT title");
+  const parts = q.split(/\s+/);
+  const owner = (parts[0] === "mine" || parts[0] === "theirs") ? parts.shift()! : "mine";
+  const hasClient = ["MTM", "PE", "MLT"].includes((parts[0] || "").toUpperCase());
+  const client = hasClient ? parts.shift()!.toUpperCase() : undefined;
+  const title = parts.join(" ");
+  if (!title) return ctx.reply("Need a task title.");
+  try { ctx.reply(await addTask(title, owner as any, client)); }
+  catch (err) { ctx.reply("Error: " + err); }
+});
+
+bot.command("tasks", async (ctx) => {
+  const q = ctx.match || undefined;
+  try { ctx.reply(await listTasks(q), { parse_mode: "HTML" }); }
+  catch (err) { ctx.reply("Error: " + err); }
+});
+
+bot.hears(/^\/done_(\w+)/, async (ctx) => {
+  const shortId = ctx.match![1];
+  try { ctx.reply(await completeTask(shortId)); }
+  catch (err) { ctx.reply("Error: " + err); }
+});
+
+bot.command("emailscan", async (ctx) => {
+  ctx.reply("Scanning inbox...");
+  try { await scanEmails(); ctx.reply("Email scan complete."); }
+  catch (err) { ctx.reply("Error: " + err); }
+});
+
+bot.command("reflection", async (ctx) => {
+  ctx.reply("Generating evening reflection...");
+  try { await sendEveningReflection(); }
+  catch (err) { ctx.reply("Error: " + err); }
+});
+
+bot.command("webcheck", async (ctx) => {
+  ctx.reply("Checking sites...");
+  try { await runWebChecks(); ctx.reply("Web check complete."); }
   catch (err) { ctx.reply("Error: " + err); }
 });
 
