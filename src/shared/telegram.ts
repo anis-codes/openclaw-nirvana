@@ -1,3 +1,5 @@
+import { runContentPipeline } from "../agents/content-engine/pipeline";
+import { scanUpworkTrends } from "../agents/upwork-bd/trends";
 import { getClientDashboard, updateClientContact, updateClientAction } from "../agents/nirvana-pa/clients";
 import { logProposalFeedback } from "../agents/upwork-bd/proposal-feedback";
 import { listSkills, reloadSkills } from "./skill-loader";
@@ -289,6 +291,24 @@ bot.command("rejectreason", async (ctx) => {
   if (!q) return ctx.reply("Usage: /rejectreason why you rejected the last proposal");
   logProposalFeedback("rejected", "see approval", q);
   ctx.reply("Feedback logged. Future proposals will learn from this.");
+});
+
+
+bot.command("contentpipeline", async (ctx) => {
+  const q = ctx.match;
+  if (!q || q.length < 5) return ctx.reply("Usage: /contentpipeline <topic>");
+  ctx.reply("Running content pipeline: research + write...");
+  try {
+    const result = await runContentPipeline(q);
+    ctx.reply("<b>Research:</b>\n" + result.ideas, { parse_mode: "HTML" });
+    ctx.reply("<b>LinkedIn Post:</b>\n\n" + result.post, { parse_mode: "HTML" });
+  } catch (err) { ctx.reply("Error: " + err); }
+});
+
+bot.command("trends", async (ctx) => {
+  ctx.reply("Scanning Upwork feeds...");
+  try { ctx.reply(await scanUpworkTrends(), { parse_mode: "HTML" }); }
+  catch (err) { ctx.reply("Error: " + err); }
 });
 
 export { bot, notify };

@@ -65,7 +65,42 @@ export async function sendMorningBriefing(): Promise<void> {
     });
   }
 
-  // 5. Build briefing
+  // 5. Client health check
+  const { data: clients } = await supabase
+    .from('client_contacts')
+    .select('client, last_contact, next_action, rate_usd')
+    .eq('status', 'active');
+
+  // 6. Build PROACTIVE RECOMMENDATIONS
+  const recommendations: string[] = [];
+
+  // Invoice reminders
+  clientTotals.forEach((v, k) => {
+    if (v.amount >= 500) {
+      recommendations.push(`💸 Invoice ${k} — $${v.amount.toFixed(2)} unbilled (${v.hours}h)`);
+    }
+  });
+
+  // Stale client alerts
+  clients?.forEach(c => {
+    if (c.last_contact) {
+      const days = Math.floor((Date.now() - new Date(c.last_contact).getTime()) / 86400000);
+      if (days >= 5) {
+        recommendations.push(`📞 Reach out to ${c.client} — ${days} days since last contact`);
+      }
+    }
+    if (c.next_action) {
+      recommendations.push(`⚡ ${c.client}: ${c.next_action}`);
+    }
+  });
+
+  // Upwork suggestion
+  recommendations.push('🔍 Run /trends to check hottest Upwork niches today');
+
+  // Content suggestion
+  recommendations.push('📝 Run /contentpipeline to auto-generate a LinkedIn post');
+
+  // 7. Build briefing
   let msg = `<b>☀️ MORNING BRIEFING</b>\n`;
   msg += `${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}\n\n`;
 
@@ -84,10 +119,10 @@ export async function sendMorningBriefing(): Promise<void> {
     msg += `<b>📈 Open Trades:</b>\n${tradesMsg}\n`;
   }
 
-  msg += `<b>⚡ Quick Actions:</b>\n`;
-  msg += `  /unbilled - Full breakdown\n`;
-  msg += `  /scan - Check new Upwork jobs\n`;
-  msg += `  /portfolio - Trade positions`;
+  msg += `<b>🧠 RECOMMENDED ACTIONS:</b>\n`;
+  recommendations.forEach((r, i) => {
+    msg += `${i + 1}. ${r}\n`;
+  });
 
   await notify(msg);
   logger.info('Morning briefing sent');
