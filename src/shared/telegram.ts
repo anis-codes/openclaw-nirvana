@@ -252,4 +252,11 @@ bot.command("reloadskills", async (ctx) => {
   ctx.reply("✅ Reloaded " + count + " skills.");
 });
 
+
+bot.command("briefing", async (ctx) => {
+  ctx.reply("Generating briefing...");
+  const { sendMorningBriefing } = await import("../jobs/morning-briefing");
+  await sendMorningBriefing();
+});
+
 export { bot, notify };

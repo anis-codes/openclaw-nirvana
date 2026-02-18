@@ -1,4 +1,4 @@
-import { getSkillsForAgent } from "./skill-loader";
+import { getSkillsForAgent } from './skill-loader';
 import Anthropic from '@anthropic-ai/sdk';
 import { config } from '../config';
 import { logAction } from './log-action';
@@ -6,6 +6,41 @@ import { logCost } from './log-cost';
 import { logger } from '../logger';
 
 const client = new Anthropic({ apiKey: config.ANTHROPIC_API_KEY });
+
+// Dynamic LLM routing: match task complexity to model cost
+const MODELS = {
+  haiku:  'claude-haiku-4-5-20251001',
+  sonnet: 'claude-sonnet-4-5-20250929',
+  opus:   'claude-opus-4-6',
+} as const;
+
+// Task type -> model tier mapping
+const TASK_ROUTING: Record<string, keyof typeof MODELS> = {
+  // Haiku: simple lookups, quick generations (~90% cheaper)
+  soql_query:        'haiku',
+  general_question:  'haiku',
+  content_ideas:     'haiku',
+  market_analysis:   'haiku',
+
+  // Sonnet: quality writing, workflows, proposals (default)
+  proposal_generation: 'sonnet',
+  workflow_help:       'sonnet',
+  linkedin_post:       'sonnet',
+  blog_post:           'sonnet',
+  draft_message:       'sonnet',
+  prioritize:          'sonnet',
+  trade_idea:          'sonnet',
+  general_assist:      'sonnet',
+
+  // Opus: complex debugging, architecture decisions
+  debug:             'opus',
+};
+
+function getModelForTask(taskType: string, explicitModel?: string): string {
+  if (explicitModel) return explicitModel;
+  const tier = TASK_ROUTING[taskType] ?? 'sonnet';
+  return MODELS[tier];
+}
 
 interface ClaudeRequest {
   agent: string;
@@ -23,7 +58,7 @@ interface ClaudeResponse {
 }
 
 export async function callClaude(req: ClaudeRequest): Promise<ClaudeResponse> {
-  const model = req.model ?? 'claude-sonnet-4-5-20250929';
+  const model = getModelForTask(req.taskType, req.model);
   const start = Date.now();
 
   try {
@@ -52,7 +87,7 @@ export async function callClaude(req: ClaudeRequest): Promise<ClaudeResponse> {
 
     await logCost(req.agent, req.taskType, tokIn, tokOut, model);
 
-    logger.info(`Claude call: ${req.agent}/${req.taskType}`, {
+    logger.info(`Claude call: ${req.agent}/${req.taskType} [${model.split('-').slice(1, 2)}]`, {
       tokens: { input: tokIn, output: tokOut }, duration,
     });
 
